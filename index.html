@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>shruti-bist — technical support analyst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e09;
+    --bg-alt:#0f1309;
+    --panel:#141810;
+    --panel-hi:#191e13;
+    --line:#2a3020;
+    --line-soft:#1e2417;
+    --text:#dee3d1;
+    --text-dim:#8b9179;
+    --text-faint:#565c47;
+    --amber:#e6a23c;
+    --amber-dim:#8a6a2c;
+    --green:#8fbf5c;
+    --green-dim:#4f6b34;
+    --red:#c1554a;
+    --blue:#6fa8c9;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --radius:3px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:15px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--blue); text-decoration:none; border-bottom:1px dashed var(--blue);}
+  a:hover{color:var(--amber); border-color:var(--amber);}
+  ::selection{background:var(--amber); color:#1a1400;}
+  :focus-visible{outline:2px solid var(--amber); outline-offset:2px;}
+
+  /* faint scanline atmosphere, confined + very subtle */
+  .scan{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05;
+    background:repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:overlay;
+  }
+
+  .wrap{max-width:840px; margin:0 auto; padding:0 20px;}
+
+  /* ---------------- polybar-style top status bar ---------------- */
+  .bar{
+    position:sticky; top:0; z-index:20;
+    background:var(--bg-alt); border-bottom:1px solid var(--line);
+    font-size:12.5px; color:var(--text-dim);
+  }
+  .bar-inner{max-width:840px; margin:0 auto; padding:0 20px; height:34px; display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .bar-host{color:var(--amber); font-weight:600; white-space:nowrap;}
+  .bar-host .dim{color:var(--text-faint); font-weight:400;}
+  .ws{display:flex; gap:2px; overflow-x:auto; scrollbar-width:none;}
+  .ws::-webkit-scrollbar{display:none;}
+  .ws button{
+    font-family:var(--mono); font-size:12.5px; background:transparent; color:var(--text-dim);
+    border:1px solid transparent; padding:5px 9px; cursor:pointer; white-space:nowrap;
+  }
+  .ws button:hover{color:var(--text);}
+  .ws button.active{background:var(--panel-hi); color:var(--amber); border-color:var(--line);}
+  .bar-clock{display:flex; gap:14px; white-space:nowrap; color:var(--text-faint);}
+  .bar-clock b{color:var(--text-dim); font-weight:500;}
+
+  /* ---------------- hero / terminal ---------------- */
+  header.hero{position:relative; z-index:1; padding:54px 0 40px;}
+  .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); margin-bottom:14px;}
+  .eyebrow::before{content:'# '; color:var(--green);}
+  h1{font-size:clamp(28px,5vw,40px); font-weight:800; letter-spacing:-0.01em; color:var(--text); display:flex; align-items:center; gap:4px;}
+  h1 .cursor-block.hero-cursor{width:11px; height:clamp(24px,4.2vw,34px); background:var(--green); animation:blink-gw 1s steps(1) infinite;}
+  @keyframes blink-gw{ 0%,49%{background:var(--green);} 50%,100%{background:#f4f6f0;} }
+  .hero-sub{margin-top:12px; max-width:560px; color:var(--text-dim); font-size:14.5px;}
+
+  .term{
+    margin-top:28px; background:var(--panel); border:1px solid var(--line);
+    box-shadow:0 0 0 1px #000, 0 30px 60px -30px rgba(0,0,0,.7);
+  }
+  .term-titlebar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 12px; background:var(--bg-alt); border-bottom:1px solid var(--line);
+    font-size:12px; color:var(--text-faint);
+  }
+  .term-titlebar .t-left{display:flex; align-items:center; gap:8px;}
+  .term-dot{width:8px; height:8px; border-radius:50%; background:var(--green-dim); border:1px solid var(--line);}
+  .term-body{
+    padding:16px 18px; max-height:420px; overflow-y:auto; font-size:13.5px;
+  }
+  .term-body::-webkit-scrollbar{width:8px;}
+  .term-body::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  .line{white-space:pre-wrap; word-break:break-word; margin-bottom:2px;}
+  .line.dim{color:var(--text-faint);}
+  .line.out{color:var(--text-dim); margin-bottom:10px;}
+  .line.cmd{color:var(--text);}
+  .line.cmd .p1{color:var(--green);}
+  .line.cmd .p2{color:var(--text-faint);}
+  .line.cmd .p3{color:var(--amber);}
+  .line.cmd .p4{color:var(--text-dim);}
+  .line.err{color:var(--red); margin-bottom:10px;}
+
+  .term-input-row{display:flex; align-items:center; gap:6px; margin-top:4px;}
+  .term-input-row .p1{color:var(--green);}
+  .term-input-row .p2{color:var(--text-faint);}
+  .term-input-row .p3{color:var(--amber);}
+  .term-input-row .p4{color:var(--text-dim); margin-right:2px;}
+  #cmdInput{
+    flex:1; background:transparent; border:none; color:var(--text); font-family:var(--mono);
+    font-size:13.5px; caret-color:var(--amber);
+  }
+  #cmdInput:focus{outline:none;}
+  .cursor-block{display:inline-block; width:7px; height:15px; background:var(--amber); animation:blink 1s steps(1) infinite; vertical-align:middle;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .chips{display:flex; flex-wrap:wrap; gap:8px; padding:12px 18px 16px; border-top:1px dashed var(--line);}
+  .chip{
+    font-family:var(--mono); font-size:11.5px; color:var(--text-dim); background:var(--bg-alt);
+    border:1px solid var(--line); padding:5px 10px; cursor:pointer;
+  }
+  .chip:hover{color:var(--amber); border-color:var(--amber-dim);}
+  .chip::before{content:'$ ';color:var(--text-faint);}
+
+  /* ---------------- generic section shell ---------------- */
+  section{position:relative; z-index:1; padding:50px 0;}
+  .sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:22px; padding-bottom:10px; border-bottom:1px solid var(--line);}
+  .sec-cmd{color:var(--amber); font-size:13px;}
+  .sec-cmd .p1{color:var(--green);}
+  .sec-cmd .p2{color:var(--text-faint);}
+  .sec-cmd .p3{color:var(--amber);}
+  .sec-title{font-size:20px; font-weight:700; color:var(--text); margin-left:auto;}
+
+  /* ---------------- experience: systemctl style ---------------- */
+  .unit{background:var(--panel); border:1px solid var(--line); margin-bottom:14px;}
+  .unit-head{
+    width:100%; text-align:left; background:transparent; border:none; color:inherit; font-family:var(--mono);
+    display:flex; align-items:flex-start; gap:12px; padding:16px 18px;
+  }
+  .unit-dot{margin-top:6px; width:9px; height:9px; border-radius:50%; flex:none;}
+  .unit-dot.running{background:var(--green); box-shadow:0 0 8px var(--green);}
+  .unit-dot.exited{background:var(--text-faint);}
+  .unit-main{flex:1;}
+  .unit-name{font-size:14.5px; font-weight:700; color:var(--text);}
+  .unit-name .svc{color:var(--text-faint); font-weight:400; font-size:12.5px;}
+  .unit-meta{margin-top:5px; font-size:12px; color:var(--text-dim); display:flex; flex-wrap:wrap; gap:2px 14px;}
+  .unit-meta b{color:var(--text-dim); font-weight:600;}
+  .unit-status{font-size:11.5px; padding:3px 8px; border:1px solid var(--line); white-space:nowrap; align-self:flex-start;}
+  .unit-status.running{color:var(--green); border-color:var(--green-dim);}
+  .unit-status.exited{color:var(--text-faint);}
+  .unit-skillset{padding:0 18px 16px 39px;}
+  .unit-skillset .lbl{font-size:11px; color:var(--text-faint); margin-bottom:8px;}
+  .unit-skillset .lbl::before{content:'ExecStart='; color:var(--text-faint);}
+
+  /* ---------------- education: cat style ---------------- */
+  .catblock{background:var(--panel); border:1px solid var(--line); padding:18px; margin-bottom:14px;}
+
+  /* ---------------- projects: distinct colored cards ---------------- */
+  .proj-card{
+    position:relative; border:1px solid var(--line); border-left:3px solid var(--pc, var(--amber));
+    padding:20px 22px; margin-bottom:18px; overflow:hidden;
+    background:
+      radial-gradient(600px 160px at 0% 0%, var(--pc-soft, rgba(230,162,60,.10)), transparent 65%),
+      var(--panel);
+  }
+  .proj-teal{--pc:#4fd1c5; --pc-soft:rgba(79,209,197,.13);}
+  .proj-violet{--pc:#b892f0; --pc-soft:rgba(184,146,240,.13);}
+  .proj-coral{--pc:#f0876f; --pc-soft:rgba(240,135,111,.13);}
+
+  .proj-top{display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .proj-name{font-size:16px; font-weight:700; color:var(--text);}
+  .proj-name .dir{color:var(--pc, var(--amber)); font-weight:400; font-size:11.5px; margin-left:8px;}
+  .proj-links{display:flex; gap:14px; font-size:11.5px;}
+  .proj-links a{color:var(--pc, var(--blue)); border-color:var(--pc, var(--blue));}
+  .proj-links a:hover{color:var(--text); border-color:var(--text);}
+
+  .proj-problem{
+    font-size:12.5px; color:var(--text-dim); background:var(--bg-alt); border:1px solid var(--line-soft);
+    padding:10px 12px; margin-bottom:14px;
+  }
+  .proj-problem .lbl{color:var(--pc, var(--amber)); font-weight:700; margin-right:6px;}
+  .proj-problem .lbl::before{content:'/* '; color:var(--text-faint); font-weight:400;}
+  .proj-problem .lbl::after{content:' */'; color:var(--text-faint); font-weight:400;}
+
+  .proj-features{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:14px;}
+  @media(max-width:600px){.proj-features{grid-template-columns:1fr;}}
+  .feat{display:flex; gap:10px; font-size:12.5px; color:var(--text-dim);}
+  .feat .num{color:var(--pc, var(--amber)); font-weight:700; flex:none;}
+
+  .pkglist{display:flex; flex-wrap:wrap; gap:5px;}
+  .pkg{font-size:10.5px; color:var(--text-dim); background:var(--bg-alt); border:1px solid var(--line-soft); padding:2px 6px;}
+  .catcmd{color:var(--green); font-size:12.5px; margin-bottom:10px;}
+  .catcmd .p2{color:var(--text-faint);} .catcmd .p3{color:var(--amber);} .catcmd .p4{color:var(--text-dim);}
+  .file-row{display:flex; gap:14px; padding:9px 0; border-top:1px dashed var(--line-soft); font-size:12.5px; flex-wrap:wrap; align-items:baseline;}
+  .file-row:first-child{border-top:none;}
+  .file-perm{color:var(--text-faint); white-space:nowrap;}
+  .file-name{color:var(--text); font-weight:600; flex:1; min-width:200px;}
+  .file-detail{color:var(--text-dim);}
+  .file-meta{color:var(--amber); white-space:nowrap;}
+  .certline{display:flex; gap:10px; padding:6px 0; font-size:13px; color:var(--text-dim); align-items:baseline;}
+  .certline .box{color:var(--green);}
+
+  /* ---------------- skills: htop style ---------------- */
+  .htophead{font-size:12px; color:var(--text-faint); margin-bottom:14px;}
+  .cores{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
+  @media(max-width:680px){.cores{grid-template-columns:1fr;}}
+  .core{background:var(--panel); border:1px solid var(--line); padding:12px 14px; transition:border-color .15s, box-shadow .15s;}
+  .core:hover{border-color:var(--amber-dim);}
+  .core.dim{opacity:.28;}
+  .core.match{border-color:var(--green-dim); box-shadow:0 0 0 1px var(--green-dim) inset;}
+  .core-label{font-size:11.5px; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
+  .core-label .tag{color:var(--amber);}
+  .core-label .pct{color:var(--text-faint);}
+
+  .skills-filter{display:flex; align-items:center; gap:8px; margin-bottom:16px; background:var(--panel); border:1px solid var(--line); padding:8px 12px;}
+  .skills-filter .p1{color:var(--green); font-size:12.5px;}
+  #skillFilter{flex:1; background:transparent; border:none; color:var(--text); font-family:var(--mono); font-size:12.5px; caret-color:var(--amber);}
+  #skillFilter:focus{outline:none;}
+  #skillFilterCount{font-size:11px; color:var(--text-faint); white-space:nowrap;}
+
+  .pkglist{display:flex; flex-wrap:wrap; gap:6px;}
+  .pkg{
+    font-size:10.5px; color:var(--text-dim); background:var(--bg-alt); border:1px solid var(--line-soft);
+    padding:4px 8px 4px 6px; display:inline-flex; align-items:center; gap:5px;
+    transition:transform .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .pkg:hover{transform:translateY(-2px); border-color:var(--amber-dim); color:var(--text);}
+  .pkg.hidden{display:none;}
+  .pkg img{width:12px; height:12px; display:block; flex:none;}
+  .pkg .dot-icon{width:6px; height:6px; border-radius:50%; background:var(--text-faint); flex:none;}
+
+  /* ---------------- contact / footer ---------------- */
+  footer{position:relative; z-index:1; padding:50px 0 70px; border-top:1px solid var(--line);}
+  .footcmd{color:var(--green); font-size:12.5px; margin-bottom:14px;}
+  .footcmd .p2{color:var(--text-faint);} .footcmd .p3{color:var(--amber);} .footcmd .p4{color:var(--text-dim);}
+  .contact-grid{display:flex; flex-direction:column; gap:8px; font-size:14px; margin-bottom:26px;}
+  .contact-grid .k{color:var(--text-faint); display:inline-block; width:64px;}
+  .footend{font-size:12px; color:var(--text-faint);}
+  .footend::before{content:'# ';}
+</style>
+</head>
+<body>
+
+<div class="scan"></div>
+
+<nav class="bar">
+  <div class="bar-inner">
+    <div class="bar-host">shruti-bist <span class="dim">| cloud &amp; mdm support</span></div>
+    <div class="ws" id="wsNav">
+      <button data-target="hero" class="active">1:term</button>
+      <button data-target="experience">2:experience</button>
+      <button data-target="projects">3:projects</button>
+      <button data-target="education">4:education</button>
+      <button data-target="skills">5:skills</button>
+      <button data-target="contact">6:contact</button>
+    </div>
+    <div class="bar-clock">
+      <span id="uptime">up —</span>
+      <b id="clock">--:--:--</b>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero" id="hero">
+    <div class="eyebrow">gurugram, india</div>
+    <h1>Shruti Bist<span class="cursor-block hero-cursor" aria-hidden="true"></span></h1>
+    <p class="hero-sub">3+ years keeping enterprise SaaS production environments upright on AWS and Azure — RHEL, Ubuntu, and Windows Server underneath, CI/CD and IaC on the side. This page runs on an actual (tiny) shell — try it below.</p>
+
+    <div class="term">
+      <div class="term-titlebar">
+        <div class="t-left"><span class="term-dot"></span> guest@shruti-bist: ~</div>
+        <div>bash — 80x24</div>
+      </div>
+      <div class="term-body" id="termBody" aria-live="polite"></div>
+      <div class="term-input-row">
+        <span class="p1">guest</span><span class="p2">@</span><span class="p3">shruti-bist</span><span class="p2">:</span><span class="p4">~$</span>
+        <input id="cmdInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="terminal command input" placeholder="type a command…">
+        <span class="cursor-block" aria-hidden="true"></span>
+      </div>
+      <div class="chips">
+        <span class="chip" data-cmd="help">help</span>
+        <span class="chip" data-cmd="whoami">whoami</span>
+        <span class="chip" data-cmd="experience">experience</span>
+        <span class="chip" data-cmd="projects">projects</span>
+        <span class="chip" data-cmd="education">education</span>
+        <span class="chip" data-cmd="skills">skills</span>
+        <span class="chip" data-cmd="contact">contact</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="experience">
+    <div class="sec-head">
+      <span class="sec-cmd"><span class="p1">$</span> systemctl status experience.target</span>
+      <span class="sec-title">Experience</span>
+    </div>
+
+    <div class="unit">
+      <div class="unit-head">
+        <span class="unit-dot running"></span>
+        <span class="unit-main">
+          <div class="unit-name">Technical Support Analyst <span class="svc">soti-analyst.service</span></div>
+          <div class="unit-meta"><span><b>Org:</b> SOTI</span><span><b>Since:</b> Aug 2024</span><span><b>Location:</b> Gurugram, India</span></div>
+        </span>
+        <span class="unit-status running">active (running)</span>
+      </div>
+      <div class="unit-skillset">
+        <div class="lbl">skillset</div>
+        <div class="pkglist">
+          <span class="pkg">AWS</span><span class="pkg">Azure</span><span class="pkg">SSO/SAML</span><span class="pkg">LDAP</span><span class="pkg">Entra ID</span><span class="pkg">REST APIs</span><span class="pkg">RHEL</span><span class="pkg">Ubuntu</span><span class="pkg">Windows Server</span><span class="pkg">Root Cause Analysis</span><span class="pkg">Jira</span><span class="pkg">Backup &amp; DR</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="unit">
+      <div class="unit-head">
+        <span class="unit-dot exited"></span>
+        <span class="unit-main">
+          <div class="unit-name">Technical Support Associate <span class="svc">soti-associate.service</span></div>
+          <div class="unit-meta"><span><b>Org:</b> SOTI</span><span><b>Jul 2023 – Aug 2024</b></span><span><b>Location:</b> Gurugram, India</span></div>
+        </span>
+        <span class="unit-status exited">active (exited)</span>
+      </div>
+      <div class="unit-skillset">
+        <div class="lbl">skillset</div>
+        <div class="pkglist">
+          <span class="pkg">Log / HAR Analysis</span><span class="pkg">DevTools</span><span class="pkg">Network Diagnostics</span><span class="pkg">DNS</span><span class="pkg">Firewall Rules</span><span class="pkg">VPN</span><span class="pkg">Auth Troubleshooting</span><span class="pkg">Jira</span><span class="pkg">Cross-team Collaboration</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="sec-head">
+      <span class="sec-cmd"><span class="p1">$</span> ls -la ~/projects</span>
+      <span class="sec-title">Projects</span>
+    </div>
+
+    <div class="proj-card proj-teal">
+      <div class="proj-top">
+        <div class="proj-name">Human-Attention-Dashboard <span class="dir">drwxr-xr-x</span></div>
+        <div class="proj-links">
+          <a href="https://github.com/cookie-shruti/Human-Attention-Dashboard" target="_blank" rel="noopener">github ↗</a>
+        </div>
+      </div>
+      <div class="proj-problem"><span class="lbl">problem</span>Most monitoring stacks watch server health — CPU, memory, uptime — but stay blind to how a person actually behaves on the page in the moment: where they hesitate, rage-click, or go idle.</div>
+      <div class="proj-features">
+        <div class="feat"><span class="num">01</span> Client-side tracker.js capturing rage clicks, scroll speed, and idle time as raw browser telemetry.</div>
+        <div class="feat"><span class="num">02</span> Express + prom-client server that turns that telemetry into Prometheus-scrapeable metrics.</div>
+        <div class="feat"><span class="num">03</span> Live Grafana dashboards visualizing behavioral signals instead of the usual infra graphs.</div>
+        <div class="feat"><span class="num">04</span> Fully containerized with Docker Compose — app, Prometheus, and Grafana spin up in one command.</div>
+      </div>
+      <div class="pkglist">
+        <span class="pkg">Prometheus</span><span class="pkg">Grafana</span><span class="pkg">Node.js</span><span class="pkg">prom-client</span><span class="pkg">Docker Compose</span>
+      </div>
+    </div>
+
+    <div class="proj-card proj-violet">
+      <div class="proj-top">
+        <div class="proj-name">Blue-Green-Deployment <span class="dir">drwxr-xr-x</span></div>
+        <div class="proj-links">
+          <a href="https://github.com/cookie-shruti/Blue-Green-Deployment" target="_blank" rel="noopener">github ↗</a>
+          <a href="https://blue-green-deployment-devops.hashnode.dev/implementing-blue-green-deployment-on-kubernetes-using-devops-tools" target="_blank" rel="noopener">writeup ↗</a>
+        </div>
+      </div>
+      <div class="proj-problem"><span class="lbl">problem</span>Rolling a new release straight onto a live Kubernetes service risks downtime, and if the new version breaks, there's no clean, instant way back to the last good state.</div>
+      <div class="proj-features">
+        <div class="feat"><span class="num">01</span> AWS infra and the Kubernetes cluster provisioned as code with Terraform.</div>
+        <div class="feat"><span class="num">02</span> Jenkins-driven CI/CD pipeline automating build, test, and deploy end to end.</div>
+        <div class="feat"><span class="num">03</span> SonarQube and Nexus wired in for code-quality gates and package management.</div>
+        <div class="feat"><span class="num">04</span> RBAC-secured Jenkins↔cluster access powering a zero-downtime blue-green switch with instant rollback.</div>
+      </div>
+      <div class="pkglist">
+        <span class="pkg">Terraform</span><span class="pkg">Kubernetes</span><span class="pkg">Jenkins</span><span class="pkg">SonarQube</span><span class="pkg">Nexus</span><span class="pkg">RBAC</span>
+      </div>
+    </div>
+
+    <div class="proj-card proj-coral">
+      <div class="proj-top">
+        <div class="proj-name">go-web-app <span class="dir">drwxr-xr-x</span></div>
+        <div class="proj-links">
+          <a href="https://github.com/cookie-shruti/go-web-app" target="_blank" rel="noopener">github ↗</a>
+          <a href="https://converting-webapp-into-automated-devops-pipeline.hashnode.dev/how-i-converted-a-simple-go-app-into-a-fully-automated-devops-pipeline" target="_blank" rel="noopener">writeup ↗</a>
+        </div>
+      </div>
+      <div class="proj-problem"><span class="lbl">problem</span>A simple Go web app had no repeatable release process — every deploy meant a manual build and manual changes on the server, with no audit trail of what actually shipped.</div>
+      <div class="proj-features">
+        <div class="feat"><span class="num">01</span> Docker multi-stage builds for lean, optimized container images.</div>
+        <div class="feat"><span class="num">02</span> GitHub Actions CI running build, test, and code-quality checks on every push.</div>
+        <div class="feat"><span class="num">03</span> Argo CD continuous delivery following GitOps practices — the cluster tracks Git, not manual kubectl.</div>
+        <div class="feat"><span class="num">04</span> NGINX Ingress Controller managing and routing incoming traffic across services.</div>
+      </div>
+      <div class="pkglist">
+        <span class="pkg">Docker</span><span class="pkg">GitHub Actions</span><span class="pkg">Argo CD</span><span class="pkg">NGINX Ingress</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="education">
+    <div class="sec-head">
+      <span class="sec-cmd"><span class="p1">$</span> cat education.txt certifications.txt</span>
+      <span class="sec-title">Education</span>
+    </div>
+
+    <div class="catblock">
+      <div class="catcmd"><span class="p1">$</span><span class="p2"> ls -la </span><span class="p3">~/education</span></div>
+      <div class="file-row">
+        <span class="file-perm">-rw-r--r--</span>
+        <span class="file-name">DIT University — B.Tech, Computer Science &amp; Engineering</span>
+        <span class="file-detail">CGPA 8.49/10</span>
+        <span class="file-meta">2019 – 2023</span>
+      </div>
+    </div>
+
+    <div class="catblock">
+      <div class="catcmd"><span class="p1">$</span><span class="p2"> cat </span><span class="p3">certifications.txt</span></div>
+      <div class="certline"><span class="box">[x]</span> AWS Certified Solutions Architect – Associate</div>
+      <div class="certline"><span class="box">[x]</span> AWS Certified Cloud Practitioner</div>
+      <div class="certline"><span class="box">[x]</span> Android Enterprise Associate</div>
+    </div>
+
+    <div class="catblock">
+      <div class="catcmd"><span class="p1">$</span><span class="p2"> cat </span><span class="p3">activities.txt</span></div>
+      <div class="certline"><span class="box">-</span> Secretary, ACM DITU Chapter</div>
+      <div class="certline"><span class="box">-</span> Team Leader, AIESEC Customer Experience</div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <div class="sec-head">
+      <span class="sec-cmd"><span class="p1">$</span> htop --user=shruti --sort=category</span>
+      <span class="sec-title">Skills</span>
+    </div>
+    <div class="skills-filter">
+      <span class="p1">$</span>
+      <input id="skillFilter" type="text" autocomplete="off" spellcheck="false" placeholder="grep -i '...' — filter tools by name">
+      <span id="skillFilterCount"></span>
+    </div>
+
+    <div class="cores" id="cores"></div>
+  </section>
+
+  <footer id="contact">
+    <div class="footcmd"><span class="p1">$</span><span class="p2"> cat </span><span class="p3">contact.txt</span></div>
+    <div class="contact-grid">
+      <div><span class="k">mail</span> <a href="mailto:shruti.bist33@gmail.com">shruti.bist33@gmail.com</a></div>
+      <div><span class="k">github</span> <a href="https://github.com/cookie-shruti" target="_blank" rel="noopener">github.com/cookie-shruti</a></div>
+      <div><span class="k">linkedin</span> <a href="#" id="linkedinLink">linkedin.com/in/shruti-bist</a></div>
+      <div><span class="k">loc</span> <span style="color:var(--text-dim)">Gurugram, India</span></div>
+    </div>
+    <div class="footend">process contact.txt exited (0) — reach out any time</div>
+  </footer>
+
+</div>
+
+<script>
+  // ---- polybar clock + career uptime ----
+  const clockEl = document.getElementById('clock');
+  const uptimeEl = document.getElementById('uptime');
+  const careerStart = new Date('2023-07-01T00:00:00');
+  function tick(){
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString('en-IN', {hour12:false});
+    const ms = now - careerStart;
+    const days = Math.floor(ms / 86400000);
+    const years = Math.floor(days/365);
+    const rem = days - years*365;
+    uptimeEl.textContent = 'up ' + years + 'y ' + rem + 'd';
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---- workspace nav (scroll spy + click) ----
+  const wsButtons = document.querySelectorAll('#wsNav button');
+  wsButtons.forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.getElementById(b.dataset.target).scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+  const secIds = ['hero','experience','projects','education','skills','contact'];
+  const secEls = secIds.map(id=>document.getElementById(id));
+  const spy = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        const id = en.target.id;
+        wsButtons.forEach(b=>b.classList.toggle('active', b.dataset.target===id));
+      }
+    });
+  }, {rootMargin:'-40% 0px -50% 0px'});
+  secEls.forEach(el=>spy.observe(el));
+
+  // ---- skill cores: icon chips + live filter (no bars, no loaders) ----
+  const ICONS = {
+    'AWS':'amazonaws', 'Microsoft Azure':'microsoftazure',
+    'Docker':'docker', 'GitHub Actions':'githubactions', 'Jenkins':'jenkins', 'Argo CD':'argo',
+    'Terraform':'terraform', 'Kubernetes':'kubernetes', 'Bash':'gnubash', 'Python':'python',
+    'RHEL':'redhat', 'Ubuntu':'ubuntu', 'Windows Server':'windows11',
+    'DevTools':'googlechrome', 'Jira':'jira', 'Postman':'postman', 'Git':'git', 'Salesforce':'salesforce',
+    'Prometheus':'prometheus', 'Grafana':'grafana', 'NGINX Ingress':'nginx', 'SonarQube':'sonarqube',
+  };
+  function pkgHTML(name){
+    const slug = ICONS[name];
+    const icon = slug
+      ? `<img src="https://cdn.simpleicons.org/${slug}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'dot-icon'}))">`
+      : `<span class="dot-icon"></span>`;
+    return `<span class="pkg" data-name="${name.toLowerCase()}">${icon}${name}</span>`;
+  }
+
+  const categories = [
+    {tag:'CORE0', name:'Cloud & Infra', items:['AWS','Microsoft Azure']},
+    {tag:'CORE1', name:'Automation & CI/CD', items:['Docker','GitHub Actions','Jenkins','Argo CD','Terraform','Kubernetes','Bash','Python']},
+    {tag:'CORE2', name:'Identity & Auth', items:['Entra ID','SSO/SAML','LDAP','IdP/SP']},
+    {tag:'CORE3', name:'Operating Systems', items:['RHEL','Ubuntu','Windows Server']},
+    {tag:'CORE4', name:'Monitoring & RCA', items:['Root Cause Analysis','Log / HAR Analysis','DevTools','Production Triage']},
+    {tag:'CORE5', name:'Networking', items:['DNS','TCP/IP','DHCP','VPN','Firewall Rules']},
+    {tag:'CORE6', name:'Database', items:['Advanced SQL','Query Analysis','DB Troubleshooting']},
+    {tag:'CORE7', name:'Observability & Delivery', items:['Prometheus','Grafana','NGINX Ingress','SonarQube','Nexus']},
+    {tag:'CORE8', name:'Workflow Tools', items:['Jira','Postman','REST APIs','Git','Salesforce']},
+  ];
+  const coresEl = document.getElementById('cores');
+  categories.forEach(c=>{
+    const pkgs = c.items.map(pkgHTML).join('');
+    coresEl.insertAdjacentHTML('beforeend', `
+      <div class="core">
+        <div class="core-label"><span class="tag">${c.tag} — ${c.name}</span><span class="pct">${c.items.length} pkgs</span></div>
+        <div class="pkglist">${pkgs}</div>
+      </div>
+    `);
+  });
+
+  // live grep-style filter across all cores
+  const filterInput = document.getElementById('skillFilter');
+  const filterCount = document.getElementById('skillFilterCount');
+  const allCores = Array.from(coresEl.querySelectorAll('.core'));
+  filterInput.addEventListener('input', ()=>{
+    const q = filterInput.value.trim().toLowerCase();
+    let matches = 0;
+    allCores.forEach(core=>{
+      const chips = Array.from(core.querySelectorAll('.pkg'));
+      let coreHasMatch = false;
+      chips.forEach(chip=>{
+        const isMatch = !q || chip.dataset.name.includes(q);
+        chip.classList.toggle('hidden', !isMatch);
+        if(isMatch && q){ coreHasMatch = true; matches++; }
+      });
+      core.classList.toggle('dim', !!q && !coreHasMatch);
+      core.classList.toggle('match', !!q && coreHasMatch);
+    });
+    filterCount.textContent = q ? `${matches} match${matches===1?'':'es'}` : '';
+  });
+
+  // ---- terminal ----
+  const termBody = document.getElementById('termBody');
+  const input = document.getElementById('cmdInput');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function printLine(text, cls){
+    const div = document.createElement('div');
+    div.className = 'line ' + (cls||'');
+    div.textContent = text;
+    termBody.appendChild(div);
+    termBody.scrollTop = termBody.scrollHeight;
+  }
+  function printPrompt(cmd){
+    const div = document.createElement('div');
+    div.className = 'line cmd';
+    div.innerHTML = '<span class="p1">guest</span><span class="p2">@</span><span class="p3">shruti-bist</span><span class="p2">:</span><span class="p4">~$</span> ' + cmd;
+    termBody.appendChild(div);
+  }
+  function printOut(text){ printLine(text, 'out'); }
+
+  const outputs = {
+    whoami: "shruti-bist\nuid=1000(shruti) groups=cloud-support,mdm,sre-adjacent\nTechnical Support Analyst — Enterprise Cloud & MDM Support\nGurugram, India · 3+ years on enterprise AWS + Azure production support.",
+    experience: "→ scroll to Experience — soti-analyst.service (active) & soti-associate.service (exited), role + skillset",
+    projects: "→ scroll to Projects — Human-Attention-Dashboard, Blue-Green-Deployment, go-web-app",
+    education: "→ scroll to Education — DIT University, B.Tech CSE (2019–2023), CGPA 8.49/10",
+    skills: "→ scroll to Skills — 9 categories, 40+ tools loaded",
+    contact: "mail    shruti.bist33@gmail.com\ngit     github.com/cookie-shruti\nloc     Gurugram, India",
+    ls: "experience.target  projects/  education.txt  certifications.txt  skills/  contact.txt",
+    date: new Date().toString(),
+    sudo: "guest is not in the sudoers file. this incident will be reported (not really).",
+    help: "available commands:\n  whoami        who you're talking to\n  experience    jump to work history\n  projects      jump to repos on github\n  education     jump to degree & certs\n  skills        jump to tool inventory\n  contact       print contact details\n  ls            list files in this directory\n  clear         clear the screen\n  date          current date/time"
+  };
+  const scrollTargets = { experience:'experience', projects:'projects', education:'education', skills:'skills', contact:'contact' };
+
+  function runCommand(raw){
+    const cmd = raw.trim();
+    if(!cmd) return;
+    printPrompt(cmd);
+    const key = cmd.toLowerCase();
+    if(key === 'clear'){ termBody.innerHTML=''; return; }
+    if(key in outputs){
+      printOut(outputs[key]);
+      if(scrollTargets[key]){
+        setTimeout(()=> document.getElementById(scrollTargets[key]).scrollIntoView({behavior: reduced?'auto':'smooth', block:'start'}), 250);
+      }
+      return;
+    }
+    printLine(`command not found: ${cmd} — try 'help'`, 'err');
+  }
+
+  input.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ runCommand(input.value); input.value=''; }
+  });
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=> runCommand(chip.dataset.cmd));
+  });
+
+  // boot sequence
+  const boot = [
+    'Linux shruti-bist 6.2.1-portfolio x86_64',
+    'Last login: ' + new Date().toDateString() + ' from 203.0.113.4 on ssh',
+    'Loading profile.......... done',
+    'Mounting /experience...... done',
+    'Mounting /education....... done',
+    'Mounting /skills........... done',
+    "Type 'help' to list available commands, or click a command below."
+  ];
+  function playBoot(){
+    if(reduced){
+      boot.forEach(l=>printLine(l,'dim'));
+      return;
+    }
+    let i=0;
+    (function step(){
+      if(i<boot.length){ printLine(boot[i],'dim'); i++; setTimeout(step, 190); }
+    })();
+  }
+  playBoot();
+</script>
+
+</body>
+</html>
