@@ -2,7 +2,7 @@
 
 A single-page portfolio built as a working Linux terminal — type real commands, browse experience like `systemctl` output, and filter skills like `grep`.
 
-**Live site:** https://cookie-shruti.github.io *(once GitHub Pages is enabled — see below)*
+**Live site:** https://cookie-shruti.github.io/Portfolio-Website 
 
 ---
 
@@ -22,19 +22,10 @@ No frameworks, no build step — one self-contained `index.html` (HTML/CSS/vanil
 Just open the file — no server or install required:
 
 ```bash
-git clone https://github.com/cookie-shruti/cookie-shruti.github.io.git
-cd cookie-shruti.github.io
+git clone https://github.com/cookie-shruti/Portfolio-Website.git
+cd Portfolio Website
 open index.html   # or double-click it
 ```
-
-## Deploying (GitHub Pages)
-
-1. Repo is named `cookie-shruti.github.io` so GitHub treats it as the personal root site.
-2. `index.html` sits in the repo root.
-3. In **Settings → Pages**, set Source to "Deploy from a branch", branch `main`, folder `/ (root)`.
-4. Site goes live at `https://cookie-shruti.github.io` a minute or two after saving.
-
-Push (or re-upload) an updated `index.html` any time — Pages redeploys automatically.
 
 ## Tech stack shown on the site
 
